@@ -1,0 +1,9 @@
+../svl/src/svl_ers.c:129:14:svl_ersInit	2
+../svl/src/svl_ers.c:158:14:svl_ersConfigure	4
+../svl/src/svl_ers.c:185:14:svl_ersCreate	7
+../svl/src/svl_ers.c:250:14:svl_ersRead	6
+../svl/src/svl_ers.c:283:14:svl_ersGetNumOfEntries	3
+../svl/src/svl_ers.c:311:14:svl_ersClearEvents	1
+../svl/src/svl_ers.c:327:25:svl_ersSetNumOfEntries	2
+../svl/src/svl_ers.c:355:19:svl_ersEventsReqCallback	2
+../svl/src/svl_ers.c:387:19:svl_ersEventsClrCallback	1

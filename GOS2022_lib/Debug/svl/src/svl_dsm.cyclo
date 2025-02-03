@@ -1,0 +1,8 @@
+../svl/src/svl_dsm.c:106:14:svl_dsmInit	6
+../svl/src/svl_dsm.c:166:14:svl_dsmPrintOSInfo	2
+../svl/src/svl_dsm.c:194:14:svl_dsmPrintLibInfo	2
+../svl/src/svl_dsm.c:229:14:svl_dsmPrintHwInfo	2
+../svl/src/svl_dsm.c:269:14:svl_dsmPrintAppInfo	4
+../svl/src/svl_dsm.c:327:19:svl_dsmWaitForState	2
+../svl/src/svl_dsm.c:341:19:svl_dsmSetState	1
+../svl/src/svl_dsm.c:355:19:svl_dsmTask	7

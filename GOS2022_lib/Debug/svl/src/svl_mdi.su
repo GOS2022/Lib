@@ -1,0 +1,2 @@
+../svl/src/svl_mdi.c:83:14:svl_mdiInit	8	static
+../svl/src/svl_mdi.c:94:19:svl_mdiReqCallback	16	static

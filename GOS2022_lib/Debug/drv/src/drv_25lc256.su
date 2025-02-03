@@ -1,0 +1,6 @@
+../drv/src/drv_25lc256.c:86:14:drv_25lc256Init	24	static
+../drv/src/drv_25lc256.c:107:14:drv_25lc256GetErrorFlags	24	static
+../drv/src/drv_25lc256.c:133:14:drv_25lc256ClearErrorFlags	24	static
+../drv/src/drv_25lc256.c:159:25:drv_25lc256Read	72	static
+../drv/src/drv_25lc256.c:261:25:drv_25lc256Write	136	static
+../drv/src/drv_25lc256.c:369:14:drv_25lc256Erase	40	static

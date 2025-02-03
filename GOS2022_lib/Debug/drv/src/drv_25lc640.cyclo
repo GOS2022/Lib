@@ -1,0 +1,6 @@
+../drv/src/drv_25lc640.c:86:14:drv_25lc640Init	5
+../drv/src/drv_25lc640.c:107:14:drv_25lc640GetErrorFlags	3
+../drv/src/drv_25lc640.c:133:14:drv_25lc640ClearErrorFlags	2
+../drv/src/drv_25lc640.c:159:25:drv_25lc640Read	18
+../drv/src/drv_25lc640.c:261:25:drv_25lc640Write	18
+../drv/src/drv_25lc640.c:369:14:drv_25lc640Erase	13

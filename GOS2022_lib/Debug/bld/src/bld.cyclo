@@ -1,0 +1,10 @@
+../bld/src/bld.c:141:14:bld_init	4
+../bld/src/bld.c:178:14:bld_stateMachineGetState	2
+../bld/src/bld.c:201:19:bld_task	20
+../bld/src/bld.c:471:14:bld_checkApplication	6
+../bld/src/bld.c:519:14:bld_jumpToApplication	3
+../bld/src/bld.c:569:14:bld_getBootloaderSize	4
+../bld/src/bld.c:608:14:bld_getBootloaderCrc	3
+../bld/src/bld.c:644:14:bld_initData	7
+../bld/src/bld.c:721:14:bld_initConfig	10
+../bld/src/bld.c:762:14:bld_printConfig	2

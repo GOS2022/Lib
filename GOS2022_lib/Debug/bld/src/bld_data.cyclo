@@ -1,0 +1,9 @@
+../bld/src/bld_data.c:20:14:bld_dataInitialize	1
+../bld/src/bld_data.c:82:14:bld_dataReset	1
+../bld/src/bld_data.c:148:14:bld_dataGet	1
+../bld/src/bld_data.c:175:14:bld_appDataGet	1
+../bld/src/bld_data.c:202:14:bld_configGet	1
+../bld/src/bld_data.c:229:14:bld_dataSet	1
+../bld/src/bld_data.c:270:14:bld_appDataSet	1
+../bld/src/bld_data.c:311:14:bld_configSet	1
+../bld/src/bld_data.c:352:8:bld_dataPrint	1
