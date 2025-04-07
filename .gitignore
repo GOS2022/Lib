@@ -1,0 +1,5 @@
+*.o
+*.d
+*.cyclo
+*.su
+/GOS2022_lib/Debug

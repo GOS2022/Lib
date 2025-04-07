@@ -14,17 +14,18 @@
 //*************************************************************************************************
 //! @file       svl_dsm.c
 //! @author     Ahmed Gazar
-//! @date       2024-07-16
-//! @version    1.0
+//! @date       2025-03-26
+//! @version    1.1
 //!
 //! @brief      GOS2022 Library / Device State Manager source.
-//! @details    For a more detailed description of this driver, please refer to @ref svl_dsm.h
+//! @details    For a more detailed description of this service, please refer to @ref svl_dsm.h
 //*************************************************************************************************
 // History
 // ------------------------------------------------------------------------------------------------
 // Version    Date          Author          Description
 // ------------------------------------------------------------------------------------------------
 // 1.0        2024-07-16    Ahmed Gazar     Initial version created.
+// 1.1        2025-03-26    Ahmed Gazar     *    Startup info print made atomic
 //*************************************************************************************************
 //
 // Copyright (c) 2024 Ahmed Gazar
@@ -54,48 +55,48 @@
 #include <string.h>
 
 /**
- * TODO
+ * Initialization phase configuration array.
  */
 GOS_EXTERN GOS_CONST svl_dsmInitPhaseDesc_t initPhaseConfig [];
 
 /**
- * TODO
+ * Reaction configuration array.
  */
 GOS_EXTERN GOS_CONST svl_dsmReaction_t      reactionConfig [];
 
 /**
- * TODO (shall be defined by user).
+ * Number of the initialization phases (shall be defined by user).
  */
 GOS_EXTERN u32_t                            initPhaseConfigSize;
 
 /**
- * TODO
+ * Size of the reaction configuration (shall be defined by user).
  */
 GOS_EXTERN u32_t                            reactionConfigSize;
 
 /**
- * TODO
+ * Device actual state.
  */
 GOS_STATIC svl_dsmState_t                   deviceState     = DSM_STATE_STARTUP;
 
 /**
- * TODO
+ * Device previous state.
  */
 GOS_STATIC svl_dsmState_t                   devicePrevState = DSM_STATE_STARTUP;
 
 /*
  * Static function prototypes.
  */
-GOS_STATIC void_t svl_dsmTask (void_t);
+GOS_STATIC void_t svl_dsmDaemonTask (void_t);
 
 /**
- * TODO
+ * DSM daemon task descriptor.
  */
 gos_taskDescriptor_t svlDsmDaemonDesc =
 {
-	.taskFunction	    = svl_dsmTask,
+	.taskFunction	    = svl_dsmDaemonTask,
 	.taskName		    = "svl_dsm_daemon",
-	.taskStackSize 	    = 0x600,
+	.taskStackSize 	    = SVL_DSM_DAEMON_STACK_SIZE,
 	.taskPriority 	    = 0u,
 	.taskPrivilegeLevel	= GOS_TASK_PRIVILEGE_KERNEL
 };
@@ -118,7 +119,7 @@ gos_result_t svl_dsmInit (void_t)
 	if (initPhaseConfig != NULL && initPhaseConfigSize > 0u)
 	{
 		// Register DSM task.
-		dsmInitResult &= gos_taskRegister(&svlDsmDaemonDesc, NULL);
+		GOS_CONCAT_RESULT(dsmInitResult, gos_taskRegister(&svlDsmDaemonDesc, NULL));
 
 		// Loop through all init phases.
 		for (initIdx = 0u; initIdx < initPhaseConfigSize / sizeof(svl_dsmInitPhaseDesc_t); initIdx++)
@@ -131,9 +132,9 @@ gos_result_t svl_dsmInit (void_t)
 			{
 				if (initPhaseConfig[initIdx].initBlock[initBlockIdx].pInitializer != NULL)
 				{
-					dsmInitResult &= gos_errorTraceInit(
+					GOS_CONCAT_RESULT(dsmInitResult, gos_errorTraceInit(
 							initPhaseConfig[initIdx].initBlock[initBlockIdx].description,
-							initPhaseConfig[initIdx].initBlock[initBlockIdx].pInitializer());
+							initPhaseConfig[initIdx].initBlock[initBlockIdx].pInitializer()));
 				}
 				else
 				{
@@ -146,15 +147,6 @@ gos_result_t svl_dsmInit (void_t)
 	else
 	{
 		// Configuration is empty.
-	}
-
-	if (dsmInitResult != GOS_SUCCESS)
-	{
-		dsmInitResult = GOS_ERROR;
-	}
-	else
-	{
-		// Success.
 	}
 
 	return dsmInitResult;
@@ -173,17 +165,8 @@ gos_result_t svl_dsmPrintOSInfo (void_t)
 	/*
 	 * Function code.
 	 */
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"OS Info"TRACE_FORMAT_RESET"\r\n");
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Version: %02u.%02u\r\n", GOS_VERSION_MAJOR, GOS_VERSION_MINOR);
-
-	if (printResult != GOS_SUCCESS)
-	{
-		printResult = GOS_ERROR;
-	}
-	else
-	{
-		// Success.
-	}
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"OS Info"TRACE_FORMAT_RESET"\r\n"));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Version: %02u.%02u\r\n", GOS_VERSION_MAJOR, GOS_VERSION_MINOR));
 
 	return printResult;
 }
@@ -202,23 +185,14 @@ gos_result_t svl_dsmPrintLibInfo (void_t)
 	/*
 	 * Function code.
 	 */
-	printResult &= svl_pdhGetLibVersion(&libVer);
+	GOS_CONCAT_RESULT(printResult, svl_pdhGetLibVersion(&libVer));
 
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Library Info"TRACE_FORMAT_RESET"\r\n");
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Name:        \t%s\r\n", libVer.name);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Description: \t%s\r\n", libVer.description);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Version:     \t%02u.%02u.%02u\r\n", libVer.major, libVer.minor, libVer.build);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Date:        \t%4u-%02u-%02u\r\n", libVer.date.years, libVer.date.months, libVer.date.days);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Author:      \t%s\r\n", libVer.author);
-
-	if (printResult != GOS_SUCCESS)
-	{
-		printResult = GOS_ERROR;
-	}
-	else
-	{
-		// Success.
-	}
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Library Info"TRACE_FORMAT_RESET"\r\n"));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Name:        \t%s\r\n", libVer.name));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Description: \t%s\r\n", libVer.description));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Version:     \t%02u.%02u.%02u\r\n", libVer.major, libVer.minor, libVer.build));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Date:        \t%4u-%02u-%02u\r\n", libVer.date.years, libVer.date.months, libVer.date.days));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Author:      \t%s\r\n", libVer.author));
 
 	return printResult;
 }
@@ -237,28 +211,19 @@ gos_result_t svl_dsmPrintHwInfo (void_t)
 	/*
 	 * Function code.
 	 */
-	printResult &= svl_pdhGetHwInfo(&hwInfo);
+	GOS_CONCAT_RESULT(printResult, svl_pdhGetHwInfo(&hwInfo));
 
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Hardware Info"TRACE_FORMAT_RESET"\r\n");
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Board name:    \t%s\r\n", hwInfo.boardName);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Author:        \t%s\r\n", hwInfo.author);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Description:   \t%s\r\n", hwInfo.description);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Revision:      \t%s\r\n", hwInfo.revision);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Serial number: \t%s\r\n", hwInfo.serialNumber);
-	printResult &= gos_traceTraceFormatted(GOS_FALSE, "Date:          \t%04hu-%02u-%02u\r\n",
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Hardware Info"TRACE_FORMAT_RESET"\r\n"));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Board name:    \t%s\r\n", hwInfo.boardName));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Author:        \t%s\r\n", hwInfo.author));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Description:   \t%s\r\n", hwInfo.description));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Revision:      \t%s\r\n", hwInfo.revision));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Serial number: \t%s\r\n", hwInfo.serialNumber));
+	GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Date:          \t%04hu-%02u-%02u\r\n",
 			hwInfo.date.years,
 			hwInfo.date.months,
 			hwInfo.date.days
-			);
-
-	if (printResult != GOS_SUCCESS)
-	{
-		printResult = GOS_ERROR;
-	}
-	else
-	{
-		// Success.
-	}
+			));
 
 	return printResult;
 }
@@ -277,17 +242,17 @@ gos_result_t svl_dsmPrintAppInfo (void_t)
 	/*
 	 * Function code.
 	 */
-	printResult &= svl_pdhGetSwInfo(&swInfo);
+	//GOS_CONCAT_RESULT(printResult, svl_pdhGetSwInfo(&swInfo)); TODO
+	(void_t) svl_pdhGetSwInfo(&swInfo);
 
 	if (strcmp(swInfo.bldSwVerInfo.name, "") != 0)
 	{
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Bootloader Info"TRACE_FORMAT_RESET"\r\n");
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Name:        \t%s\r\n", swInfo.bldSwVerInfo.name);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Description: \t%s\r\n", swInfo.bldSwVerInfo.description);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Version:     \t%02u.%02u.%02u\r\n", swInfo.bldSwVerInfo.major, swInfo.bldSwVerInfo.minor, swInfo.bldSwVerInfo.build);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Date:        \t%4u-%02u-%02u\r\n", swInfo.bldSwVerInfo.date.years, swInfo.bldSwVerInfo.date.months, swInfo.bldSwVerInfo.date.days);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Author:      \t%s\r\n", swInfo.bldSwVerInfo.author);
-
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Bootloader Info"TRACE_FORMAT_RESET"\r\n"));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Name:        \t%s\r\n", swInfo.bldSwVerInfo.name));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Description: \t%s\r\n", swInfo.bldSwVerInfo.description));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Version:     \t%02u.%02u.%02u\r\n", swInfo.bldSwVerInfo.major, swInfo.bldSwVerInfo.minor, swInfo.bldSwVerInfo.build));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Date:        \t%4u-%02u-%02u\r\n", swInfo.bldSwVerInfo.date.years, swInfo.bldSwVerInfo.date.months, swInfo.bldSwVerInfo.date.days));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Author:      \t%s\r\n", swInfo.bldSwVerInfo.author));
 	}
 	else
 	{
@@ -296,26 +261,16 @@ gos_result_t svl_dsmPrintAppInfo (void_t)
 
 	if (strcmp(swInfo.appSwVerInfo.name, "") != 0)
 	{
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Application Info"TRACE_FORMAT_RESET"\r\n");
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Name:        \t%s\r\n", swInfo.appSwVerInfo.name);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Description: \t%s\r\n", swInfo.appSwVerInfo.description);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Version:     \t%02u.%02u.%02u\r\n", swInfo.appSwVerInfo.major, swInfo.appSwVerInfo.minor, swInfo.appSwVerInfo.build);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Date:        \t%4u-%02u-%02u\r\n", swInfo.appSwVerInfo.date.years, swInfo.appSwVerInfo.date.months, swInfo.appSwVerInfo.date.days);
-		printResult &= gos_traceTraceFormatted(GOS_FALSE, "Author:      \t%s\r\n", swInfo.appSwVerInfo.author);
-
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "\r\n"TRACE_BG_BLUE_START"Application Info"TRACE_FORMAT_RESET"\r\n"));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Name:        \t%s\r\n", swInfo.appSwVerInfo.name));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Description: \t%s\r\n", swInfo.appSwVerInfo.description));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Version:     \t%02u.%02u.%02u\r\n", swInfo.appSwVerInfo.major, swInfo.appSwVerInfo.minor, swInfo.appSwVerInfo.build));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Date:        \t%4u-%02u-%02u\r\n", swInfo.appSwVerInfo.date.years, swInfo.appSwVerInfo.date.months, swInfo.appSwVerInfo.date.days));
+		GOS_CONCAT_RESULT(printResult, gos_traceTraceFormatted(GOS_FALSE, "Author:      \t%s\r\n", swInfo.appSwVerInfo.author));
 	}
 	else
 	{
 		// Application does not exist.
-	}
-
-	if (printResult != GOS_SUCCESS)
-	{
-		printResult = GOS_ERROR;
-	}
-	else
-	{
-		// Success.
 	}
 
 	return printResult;
@@ -348,11 +303,17 @@ GOS_INLINE void_t svl_dsmSetState (svl_dsmState_t requiredState)
 }
 
 /**
- * TODO
- * @param
- * @return
+ * @brief   DSM daemon task.
+ * @details During initialization, this task starts as the highest
+ *          priority task and print all the related software info
+ *          on the trace output. After this initialization phase,
+ *          the task changes its priority to become a background task,
+ *          and polls for change in the state. If a state-change occurs,
+ *          it activates the related reactions - if any.
+ *
+ * @return  -
  */
-GOS_STATIC void_t svl_dsmTask (void_t)
+GOS_STATIC void_t svl_dsmDaemonTask (void_t)
 {
 	/*
 	 * Local variables.
@@ -362,6 +323,9 @@ GOS_STATIC void_t svl_dsmTask (void_t)
 	/*
 	 * Function code.
 	 */
+	// Disable scheduling to keep printed info consistent.
+	GOS_DISABLE_SCHED
+
 	// Print out OS info.
 	(void_t) svl_dsmPrintOSInfo();
 
@@ -373,6 +337,9 @@ GOS_STATIC void_t svl_dsmTask (void_t)
 
 	// Print out Application Info.
 	(void_t) svl_dsmPrintAppInfo();
+
+	// Enable scheduling, data printed.
+	GOS_ENABLE_SCHED
 
 	// Change priority.
 	(void_t) gos_taskSetPriority(svlDsmDaemonDesc.taskId, SVL_DSM_DAEMON_PRIO);

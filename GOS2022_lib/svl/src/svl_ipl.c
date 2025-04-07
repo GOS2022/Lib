@@ -18,7 +18,7 @@
 //! @version    1.0
 //!
 //! @brief      GOS2022 Library / Inter-Processor Link source.
-//! @details    For a more detailed description of this driver, please refer to @ref svl_ipl.h
+//! @details    For a more detailed description of this service, please refer to @ref svl_ipl.h
 //*************************************************************************************************
 // History
 // ------------------------------------------------------------------------------------------------
@@ -296,11 +296,6 @@ GOS_STATIC svl_iplTaskDataMsg_t         taskDataMsg;
 GOS_STATIC svl_iplCpuLoadMsg_t          cpuLoadMsg;
 
 /**
- * Message header.
- */
-GOS_STATIC svl_iplMsgHeader_t           msgHeader;
-
-/**
  * Connect message.
  */
 GOS_STATIC svl_iplConnectMessage_t      connectMsg;
@@ -456,7 +451,7 @@ gos_result_t svl_iplConfigure (svl_iplTransmitFunction transmitFunc, svl_iplRece
 	/*
 	 * Local variables.
 	 */
-	gos_result_t configureResult = GOS_SUCCESS;
+	gos_result_t configureResult = GOS_ERROR;
 
 	/*
 	 * Function code.
@@ -468,6 +463,7 @@ gos_result_t svl_iplConfigure (svl_iplTransmitFunction transmitFunc, svl_iplRece
 	if (svl_iplTransmit != NULL && svl_iplReceive != NULL)
 	{
 		iplState = SVL_IPL_STATE_DISCOVER_START;
+		configureResult = GOS_SUCCESS;
 	}
 	else
 	{
@@ -519,14 +515,12 @@ GOS_STATIC void_t svl_iplDaemon (void_t)
 	/*
 	 * Local variables.
 	 */
-	u8_t lutIndex = 0u;
+	u8_t               lutIndex = 0u;
+	svl_iplMsgHeader_t msgHeader;
 
 	/*
 	 * Function code.
 	 */
-	// Delay service start.
-	(void_t) gos_taskSleep(2000);
-
 	for (;;)
 	{
 		switch (iplState)
@@ -586,7 +580,7 @@ GOS_STATIC void_t svl_iplDaemon (void_t)
 					(void_t) gos_traceTrace(GOS_TRUE, "IPL discovery failed.\r\n");
 #endif
 					iplState = SVL_IPL_STATE_DISCOVER_START;
-					(void_t) gos_taskSleep(5000);
+					(void_t) gos_taskSleep(1000);
 				}
 				break;
 			}
@@ -607,10 +601,10 @@ GOS_STATIC void_t svl_iplDaemon (void_t)
 
 				(void_t) drv_crcGetCrc32((u8_t*)&devConfigMsg, sizeof(devConfigMsg), &msgHeader.messageCrc);
 
-				if (svl_iplTransmit((u8_t*)&msgHeader,    sizeof(svl_iplMsgHeader_t), 1000u) == GOS_SUCCESS &&
-					svl_iplTransmit((u8_t*)&devConfigMsg, sizeof(devConfigMsg),       1000u) == GOS_SUCCESS &&
-					svl_iplReceive((u8_t*)&msgHeader,     sizeof(msgHeader),          2000u) == GOS_SUCCESS &&
-					svl_iplReceive(iplRxBuffer,           msgHeader.messageLength,    2000u) == GOS_SUCCESS &&
+				if (svl_iplTransmit((u8_t*)&msgHeader,    sizeof(svl_iplMsgHeader_t), 100u) == GOS_SUCCESS &&
+					svl_iplTransmit((u8_t*)&devConfigMsg, sizeof(devConfigMsg),       100u) == GOS_SUCCESS &&
+					svl_iplReceive((u8_t*)&msgHeader,     sizeof(msgHeader),          200u) == GOS_SUCCESS &&
+					svl_iplReceive(iplRxBuffer,           msgHeader.messageLength,    200u) == GOS_SUCCESS &&
 					msgHeader.messageId == IPL_MSG_ID_CONFIG_ACK &&
 					drv_crcCheckCrc32(iplRxBuffer, msgHeader.messageLength, msgHeader.messageCrc, NULL) == DRV_CRC_CHECK_OK)
 				{
@@ -666,10 +660,10 @@ GOS_STATIC void_t svl_iplDaemon (void_t)
 
 				(void_t) drv_crcGetCrc32((u8_t*)&connectMsg, sizeof(connectMsg), &msgHeader.messageCrc);
 
-				if (svl_iplTransmit((u8_t*)&msgHeader,  sizeof(svl_iplMsgHeader_t), 1000u) == GOS_SUCCESS &&
-					svl_iplTransmit((u8_t*)&connectMsg, sizeof(connectMsg),         1000u) == GOS_SUCCESS &&
-					svl_iplReceive((u8_t*)&msgHeader,   sizeof(msgHeader),         10000u) == GOS_SUCCESS &&
-					svl_iplReceive(iplRxBuffer,         msgHeader.messageLength,    2000u) == GOS_SUCCESS &&
+				if (svl_iplTransmit((u8_t*)&msgHeader,  sizeof(svl_iplMsgHeader_t), 100u) == GOS_SUCCESS &&
+					svl_iplTransmit((u8_t*)&connectMsg, sizeof(connectMsg),         100u) == GOS_SUCCESS &&
+					svl_iplReceive((u8_t*)&msgHeader,   sizeof(msgHeader),          0xFFFFFFFFu) == GOS_SUCCESS &&
+					svl_iplReceive(iplRxBuffer,         msgHeader.messageLength,    200u) == GOS_SUCCESS &&
 					msgHeader.messageId == IPL_MSG_ID_CONNECT_ACK &&
 					drv_crcCheckCrc32(iplRxBuffer, msgHeader.messageLength, msgHeader.messageCrc, NULL) == DRV_CRC_CHECK_OK)
 				{

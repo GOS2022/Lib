@@ -18,7 +18,7 @@
 //! @version    1.0
 //!
 //! @brief      GOS2022 Library / Event Reporting Service source.
-//! @details    For a more detailed description of this driver, please refer to @ref svl_ers.h
+//! @details    For a more detailed description of this service, please refer to @ref svl_ers.h
 //*************************************************************************************************
 // History
 // ------------------------------------------------------------------------------------------------
@@ -57,7 +57,18 @@
 /**
  * Size of ERS buffer.
  */
-#define ERS_BUFFER_SIZE ( 1024u )
+#define ERS_BUFFER_SIZE ( 2048u )
+
+/*
+ * Type definitions
+ */
+typedef enum
+{
+    SVL_ERS_SYSMON_MSG_EVENTS_GET_REQ    = 0x4001,
+    SVL_ERS_SYSMON_MSG_EVENTS_GET_RESP   = 0x4A01,
+    SVL_ERS_SYSMON_MSG_EVENTS_CLEAR_REQ  = 0x4002,
+    SVL_ERS_SYSMON_MSG_EVENTS_CLEAR_RESP = 0x4A02,
+}svl_ersSysmonMsgId_t;
 
 /*
  * Static variables
@@ -105,7 +116,7 @@ GOS_STATIC void_t       svl_ersEventsClrCallback (void_t);
 gos_sysmonUserMessageDescriptor_t ersEventsRequestMsg =
 {
 	.callback        = svl_ersEventsReqCallback,
-	.messageId       = 0x4101,
+	.messageId       = SVL_ERS_SYSMON_MSG_EVENTS_GET_REQ,
 	.payloadSize     = 0u,
 	.protocolVersion = 1,
 	.payload         = NULL
@@ -117,7 +128,7 @@ gos_sysmonUserMessageDescriptor_t ersEventsRequestMsg =
 gos_sysmonUserMessageDescriptor_t ersEventsClearMsg =
 {
 	.callback        = svl_ersEventsClrCallback,
-	.messageId       = 0x4102,
+	.messageId       = SVL_ERS_SYSMON_MSG_EVENTS_CLEAR_REQ,
 	.payloadSize     = 0u,
 	.protocolVersion = 1,
 	.payload         = NULL
@@ -136,18 +147,9 @@ gos_result_t svl_ersInit (void_t)
 	/*
 	 * Function code.
 	 */
-	initResult &= gos_sysmonRegisterUserMessage(&ersEventsRequestMsg);
-	initResult &= gos_sysmonRegisterUserMessage(&ersEventsClearMsg);
-	initResult &= gos_mutexInit(&ersMutex);
-
-	if (initResult != GOS_SUCCESS)
-	{
-		initResult = GOS_ERROR;
-	}
-	else
-	{
-		// OK.
-	}
+	GOS_CONCAT_RESULT(initResult, gos_sysmonRegisterUserMessage(&ersEventsRequestMsg));
+	GOS_CONCAT_RESULT(initResult, gos_sysmonRegisterUserMessage(&ersEventsClearMsg));
+	GOS_CONCAT_RESULT(initResult, gos_mutexInit(&ersMutex));
 
 	return initResult;
 }
@@ -315,14 +317,14 @@ gos_result_t svl_ersClearEvents (void_t)
 
 /**
  * @brief   Sets the number of entries.
- * @details TODO
+ * @details Writes the number of entries in the non-volatile memory.
  *
  * @param   numOfEntries : Desired number to be set.
  *
  * @return  Result of entry number setting.
  *
  * @retval  GOS_SUCCESS : Number setting successful.
- * @retval  GOS_ERROR   :
+ * @retval  GOS_ERROR   : Write failed.
  */
 GOS_STATIC gos_result_t svl_ersSetNumOfEntries (u32_t numOfEntries)
 {
@@ -347,7 +349,7 @@ GOS_STATIC gos_result_t svl_ersSetNumOfEntries (u32_t numOfEntries)
 }
 
 /**
- * @brief   TODO
+ * @brief   Sysmon events request callback.
  * @details TODO
  *
  * @return  -
@@ -372,14 +374,14 @@ GOS_STATIC void_t svl_ersEventsReqCallback (void_t)
 
 	(void_t) gos_gcpTransmitMessage(
     		CFG_SYSMON_GCP_CHANNEL_NUM,
-			0xD101,
+			SVL_ERS_SYSMON_MSG_EVENTS_GET_RESP,
 			(void_t*)ersBuffer,
 			numOfEvents * sizeof(svl_ersEventDesc_t),
 			0xFFFF);
 }
 
 /**
- * @brief   TODO
+ * @brief   Sysmon events clear callback.
  * @details TODO
  *
  * @return  -
@@ -400,7 +402,7 @@ GOS_STATIC void_t svl_ersEventsClrCallback (void_t)
 
 	(void_t) gos_gcpTransmitMessage(
     		CFG_SYSMON_GCP_CHANNEL_NUM,
-			0xD102,
+			SVL_ERS_SYSMON_MSG_EVENTS_CLEAR_RESP,
 			(void_t*)&eventNum,
 			sizeof(eventNum),
 			0xFFFF);

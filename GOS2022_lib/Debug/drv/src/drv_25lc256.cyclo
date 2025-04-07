@@ -1,6 +1,0 @@
-../drv/src/drv_25lc256.c:86:14:drv_25lc256Init	5
-../drv/src/drv_25lc256.c:107:14:drv_25lc256GetErrorFlags	3
-../drv/src/drv_25lc256.c:133:14:drv_25lc256ClearErrorFlags	2
-../drv/src/drv_25lc256.c:159:25:drv_25lc256Read	18
-../drv/src/drv_25lc256.c:261:25:drv_25lc256Write	18
-../drv/src/drv_25lc256.c:369:14:drv_25lc256Erase	13

@@ -1,9 +1,0 @@
-../svl/src/svl_ers.c:129:14:svl_ersInit	16	static
-../svl/src/svl_ers.c:158:14:svl_ersConfigure	24	static
-../svl/src/svl_ers.c:185:14:svl_ersCreate	40	static
-../svl/src/svl_ers.c:250:14:svl_ersRead	32	static
-../svl/src/svl_ers.c:283:14:svl_ersGetNumOfEntries	24	static
-../svl/src/svl_ers.c:311:14:svl_ersClearEvents	8	static
-../svl/src/svl_ers.c:327:25:svl_ersSetNumOfEntries	24	static
-../svl/src/svl_ers.c:355:19:svl_ersEventsReqCallback	24	static
-../svl/src/svl_ers.c:387:19:svl_ersEventsClrCallback	24	static
